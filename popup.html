@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FreelanceAI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --surface2: #1a1a24;
+      --border: #2a2a3a;
+      --accent: #7c5cfc;
+      --accent2: #00e5a0;
+      --danger: #ff4d6d;
+      --warning: #ffb700;
+      --text: #e8e8f0;
+      --muted: #6b6b80;
+      --mono: 'Space Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 580px;
+      max-height: 580px;
+    }
+
+    body {
+      width: 400px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 13px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      flex-shrink: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo { display: flex; align-items: center; gap: 8px; }
+    .logo-icon {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 11px; font-weight: 700; color: #fff;
+    }
+    .logo-text { font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: -0.3px; }
+    .logo-text span { color: var(--accent2); }
+
+    .status-pill {
+      display: flex; align-items: center; gap: 5px;
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 3px 8px;
+    }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); transition: all 0.3s; }
+    .status-dot.active { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+    .status-dot.running { background: var(--warning); box-shadow: 0 0 6px var(--warning); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+
+    .tabs {
+      flex-shrink: 0;
+      display: flex; background: var(--surface); border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      flex: 1; padding: 9px 0; text-align: center; font-size: 11px; font-weight: 500;
+      color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent;
+      transition: all 0.2s; letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab:hover:not(.active) { color: var(--text); }
+
+    .tab-content {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      padding: 16px;
+      overflow-y: auto;
+    }
+    .tab-content.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Bid log: keep scroll inside the list, not the whole tab */
+    #tab-bids.tab-content.active {
+      overflow: hidden;
+    }
+
+    label {
+      display: block; font-size: 11px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 5px;
+    }
+
+    input[type="text"], input[type="password"], input[type="number"], textarea, select {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-family: var(--sans); font-size: 12px;
+      padding: 8px 10px; outline: none; transition: border-color 0.2s; margin-bottom: 12px;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+    input[type="password"] { font-family: var(--mono); letter-spacing: 2px; }
+
+    /* Toggle switch */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;
+    }
+    .toggle-info { flex: 1; }
+    .toggle-label { font-size: 12px; font-weight: 600; color: var(--text); }
+    .toggle-desc { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .toggle {
+      position: relative; width: 40px; height: 22px; flex-shrink: 0; margin-left: 12px;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background: var(--border); border-radius: 22px; transition: 0.3s;
+    }
+    .toggle-slider:before {
+      content: ''; position: absolute; height: 16px; width: 16px;
+      left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--accent); }
+    .toggle input:checked + .toggle-slider:before { transform: translateX(18px); }
+
+    .checkbox-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .checkbox-item { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .checkbox-item input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--accent); margin: 0; }
+    .checkbox-item span { font-size: 12px; color: var(--text); }
+
+    .btn {
+      width: 100%; padding: 10px; border: none; border-radius: 6px;
+      font-family: var(--mono); font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #5a3fd4); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-danger { background: rgba(255,77,109,0.15); color: var(--danger); border: 1px solid rgba(255,77,109,0.3); }
+    .btn-danger:hover { background: rgba(255,77,109,0.25); }
+    .btn-row { display: flex; gap: 8px; margin-top: 4px; }
+    .btn-row .btn { flex: 1; }
+
+    .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .stat-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 8px; text-align: center; }
+    .stat-val { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--accent2); line-height: 1; }
+    .stat-val.danger { color: var(--danger); }
+    .stat-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-top: 4px; }
+
+    .log-feed {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px; height: 160px; overflow-y: auto; font-family: var(--mono);
+      font-size: 10px; line-height: 1.7;
+    }
+    .log-feed::-webkit-scrollbar { width: 4px; }
+    .log-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .log-line { display: flex; gap: 8px; }
+    .log-time { color: var(--muted); flex-shrink: 0; }
+    .log-msg.success { color: var(--accent2); }
+    .log-msg.error { color: var(--danger); }
+    .log-msg.info { color: var(--text); }
+    .log-msg.warn { color: var(--warning); }
+
+    /* Bid list */
+    .bid-list {
+      flex: 1;
+      min-height: 0;
+      display: flex; flex-direction: column; gap: 6px;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    .bid-list::-webkit-scrollbar { width: 4px; }
+    .bid-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .bid-item {
+      flex-shrink: 0;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .bid-item:hover { border-color: var(--accent); }
+
+    .bid-summary {
+      cursor: pointer;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 8px; padding: 10px 12px;
+    }
+    .bid-title {
+      font-size: 12px; font-weight: 600; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;
+    }
+    .bid-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+    .bid-meta { font-family: var(--mono); font-size: 9px; color: var(--muted); }
+
+    .bid-badge {
+      padding: 2px 6px; border-radius: 4px; font-size: 9px;
+      font-weight: 700; font-family: var(--mono);
+    }
+    .badge-submitted { background: rgba(0,229,160,0.15); color: var(--accent2); }
+    .badge-pending { background: rgba(255,183,0,0.15); color: var(--warning); }
+    .badge-manual { background: rgba(124,92,252,0.15); color: var(--accent); }
+    .badge-error { background: rgba(255,77,109,0.15); color: var(--danger); }
+
+    /* Expandable detail panel */
+    .bid-detail {
+      display: none; border-top: 1px solid var(--border);
+      padding: 10px 12px; background: #0f0f18;
+    }
+    .bid-detail.open {
+      display: block;
+      max-height: 220px;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    .bid-detail.open::-webkit-scrollbar { width: 4px; }
+    .bid-detail.open::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .bid-detail-label {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.6px; color: var(--muted); margin-bottom: 5px; margin-top: 8px;
+    }
+    .bid-detail-label:first-child { margin-top: 0; }
+    .bid-proposal-text {
+      font-size: 11px; color: var(--text); line-height: 1.6;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .bid-detail-row {
+      display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 4px;
+    }
+    .bid-detail-kv { font-size: 11px; }
+    .bid-detail-kv span { color: var(--muted); font-size: 10px; }
+    .bid-open-link {
+      display: inline-block; margin-top: 8px;
+      font-family: var(--mono); font-size: 10px; color: var(--accent);
+      text-decoration: none;
+    }
+    .bid-open-link:hover { text-decoration: underline; }
+    .bid-chevron {
+      font-size: 10px; color: var(--muted); margin-left: 4px; transition: transform 0.2s;
+    }
+    .bid-item.expanded .bid-chevron { transform: rotate(180deg); }
+
+    .alert {
+      display: flex; align-items: flex-start; gap: 8px;
+      background: rgba(255,183,0,0.08); border: 1px solid rgba(255,183,0,0.2);
+      border-radius: 6px; padding: 8px 10px; margin-bottom: 12px;
+      font-size: 11px; color: var(--warning); line-height: 1.4;
+    }
+    .alert.info-alert {
+      background: rgba(124,92,252,0.08); border-color: rgba(124,92,252,0.2); color: var(--accent);
+    }
+
+    .section-label {
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; margin-top: 4px;
+    }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .saved-badge { display: none; font-size: 10px; color: var(--accent2); font-family: var(--mono); text-align: center; margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">FA</div>
+    <div class="logo-text">Freelance<span>AI</span></div>
+  </div>
+  <div class="status-pill">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">IDLE</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="dashboard">Dashboard</div>
+  <div class="tab" data-tab="config">Config</div>
+  <div class="tab" data-tab="bids">Bid Log</div>
+</div>
+
+<!-- DASHBOARD TAB -->
+<div class="tab-content active" id="tab-dashboard">
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-val" id="statScanned">0</div>
+      <div class="stat-label">Scanned</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statSubmitted">0</div>
+      <div class="stat-label">Submitted</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val danger" id="statErrors">0</div>
+      <div class="stat-label">Errors</div>
+    </div>
+  </div>
+
+  <div class="alert" id="modeAlert">
+    ⚠️ Auto-submit is active. Bids will be placed without confirmation.
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" id="btnStart">▶ START AGENT</button>
+    <button class="btn btn-danger" id="btnStop" style="display:none">■ STOP</button>
+  </div>
+
+  <hr class="divider"/>
+
+  <div class="section-label">Activity Log</div>
+  <div class="log-feed" id="logFeed">
+    <div class="log-line">
+      <span class="log-time">--:--:--</span>
+      <span class="log-msg info">Agent ready. Configure and start.</span>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIG TAB -->
+<div class="tab-content" id="tab-config">
+  <label>Anthropic API Key</label>
+  <input type="password" id="apiKey" placeholder="sk-ant-..." />
+
+  <label>Freelancer Search URL</label>
+  <input type="text" id="searchUrl" placeholder="https://www.freelancer.com/search/projects?..."/>
+
+  <hr class="divider"/>
+
+  <div class="section-label">Submission Mode</div>
+  <div class="toggle-row">
+    <div class="toggle-info">
+      <div class="toggle-label">Auto-Submit</div>
+      <div class="toggle-desc" id="modeDesc">ON — bids placed automatically</div>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" id="autoSubmit" checked/>
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+
+  <hr class="divider"/>
+
+  <div class="section-label">Your Profile</div>
+  <label>Bio / Skills Summary</label>
+  <textarea id="userBio" placeholder="e.g. Full-stack developer with 5 years experience in React, Node.js, Python. Expert in data scraping, automation, and REST APIs..."></textarea>
+
+  <hr class="divider"/>
+
+  <div class="section-label">Bid Targeting</div>
+  <label>Target Categories</label>
+  <div class="checkbox-group">
+    <label class="checkbox-item">
+      <input type="checkbox" id="catWebDev" checked/>
+      <span>Web Development</span>
+    </label>
+    <label class="checkbox-item">
+      <input type="checkbox" id="catDataEntry" checked/>
+      <span>Data Entry</span>
+    </label>
+  </div>
+
+  <div class="row-2">
+    <div>
+      <label>Min Budget ($)</label>
+      <input type="number" id="minBudget" value="50" min="0"/>
+    </div>
+    <div>
+      <label>Max Budget ($)</label>
+      <input type="number" id="maxBudget" value="5000" min="0"/>
+    </div>
+  </div>
+
+  <label>Scan Interval (minutes)</label>
+  <input type="number" id="scanInterval" value="5" min="1" max="60"/>
+
+  <button class="btn btn-primary" id="btnSave">SAVE CONFIGURATION</button>
+  <div class="saved-badge" id="savedBadge">✓ Saved successfully</div>
+</div>
+
+<!-- BIDS TAB -->
+<div class="tab-content" id="tab-bids">
+  <div class="bid-list" id="bidList">
+    <div style="text-align:center; color: var(--muted); font-size:12px; padding: 40px 0;">
+      No bids yet.<br/>Start the agent to begin.
+    </div>
+  </div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
