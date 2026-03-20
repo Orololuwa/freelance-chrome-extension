@@ -15,6 +15,15 @@ function clampProposalText(text, maxLen = PROPOSAL_MAX_CHARS) {
   return cut.trim();
 }
 
+/** Strip contact details the model must never output (Freelancer policy). */
+function sanitizeProposalForPlatform(text) {
+  return text
+    .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, '')
+    .replace(/\b(?:\+?\d{1,3}[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'START_AGENT') {
@@ -556,13 +565,19 @@ async function generateProposal(project, config, bidAmount, clientBudget) {
 - Sound like a developer who knows their craft, not a salesperson.
 - Every sentence earns its place. If it doesn't inform or persuade, cut it.
 
+## Freelancer.com rules you must follow (violations get bids removed or penalized)
+1. **No generic proposals.** Every line must clearly apply to THIS project only. Do not reuse wording that could fit any job (no boilerplate intros, no filler that ignores the brief). Tie claims to details from the title and description.
+2. **Stay within honest expertise.** Only pitch work that matches the FREELANCER BIO and the skills this project needs. Do not claim experience in stacks or domains that are not supported by the bio. If something is adjacent to your skills, say how you'd approach it honestly instead of overstating.
+3. **No bait-and-switch on money.** The client will see your bid amount on the platform. Do not promise a different price later, a "intro rate," or suggest you'll renegotiate upward after award. Keep scope aligned with the stated bid.
+4. **No contact information — period.** Do not give or ask for email, phone, any messenger (WhatsApp, Telegram, Discord, Skype, etc.), social handles, or personal URLs. Do not say "contact me outside Freelancer" or ask for the client's details. Communication stays on Freelancer only; you may refer to clarifying via Freelancer chat/messages without naming apps or numbers.
+
 ## Structure (follow this order; hard maximum ${PROPOSAL_MAX_CHARS} characters including spaces)
 1. Hook — one sentence showing you read the brief; reference a specific detail from the project.
 2. Diagnosis — name the core technical challenge in plain terms; show you understand what's hard about it.
 3. Approach — describe your solution in 2–3 sentences; name the stack, method, or pattern you'd use.
-4. Credibility — one relevant fact: a past project, specific metric, or skill that directly applies.
+4. Credibility — one relevant fact grounded in the FREELANCER BIO or a skill that clearly matches this project.
 5. Timeline — give a realistic delivery estimate; never overpromise.
-6. Call to action — end with a specific question or invite to a short call; don't beg for the work.
+6. Call to action — end with one specific question about the brief or scope (on-platform only). Do not ask for calls, contact details, or off-site chat.
 
 ## Writing rules
 - One idea per sentence. Lead with the subject, verb early.
@@ -599,7 +614,8 @@ async function generateProposal(project, config, bidAmount, clientBudget) {
 - No em dashes (—); use commas or short sentences instead.
 - No exclamation points.
 - Sentence case only; no title case phrases mid-sentence.
-- Oxford commas in lists.`;
+- Oxford commas in lists.
+- No URLs, no @handles, no "DM me," no phone or email strings of any kind.`;
 
   const userPrompt = `Write a Freelancer.com proposal for this project.
 
@@ -611,7 +627,9 @@ FREELANCER BIO: ${config.userBio}
 BUDGET: ${budgetContext}
 
 Return ONLY the proposal text. No preamble, no subject line, no sign-off name.
-The entire proposal must be at most ${PROPOSAL_MAX_CHARS} characters (count spaces). If unsure, be shorter.`;
+The entire proposal must be at most ${PROPOSAL_MAX_CHARS} characters (count spaces). If unsure, be shorter.
+
+Before you write: confirm the pitch only uses expertise implied by the FREELANCER BIO and is uniquely tied to this project's title and description.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -637,7 +655,9 @@ The entire proposal must be at most ${PROPOSAL_MAX_CHARS} characters (count spac
 
     const data = await response.json();
     const raw = data.content?.[0]?.text?.trim();
-    return raw ? clampProposalText(raw) : null;
+    if (!raw) return null;
+    const cleaned = sanitizeProposalForPlatform(raw);
+    return cleaned ? clampProposalText(cleaned) : null;
   } catch (e) {
     log(`Claude API error: ${e.message}`, 'error');
     return null;
